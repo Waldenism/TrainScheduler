@@ -10,67 +10,55 @@
 
   var database = firebase.database();
 
+  var trainName = "";
+  var destination = "";
+  var freq = 0;
+  var firstTrain = "";
 
-    var trainName = "";
-    var destination = "";
-    var freq = 0;
-    var firstTrain = "";
+  $("#add-train").on("click", function(event) {
+    event.preventDefault();
+    trainName = $("#train-name").val().trim();
+    destination = $("#destination").val().trim();
+    firstTrain= $("#first-train").val().trim();
+    freq = $("#frequency").val().trim();
 
-    // Create Button Click:
+    database.ref().push({
+      trainName: trainName,
+      destination: destination,
+      firstTrain: firstTrain,
+      freq: freq,
+    }); 
 
-    $("#add-train").on("click", function(event) {
-        event.preventDefault();
-        trainName = $("#train-name").val().trim();
-        // console.log(trainName);
-        destination = $("#destination").val().trim();
-        // console.log(destination);
-        firstTrain= $("#first-train").val().trim();
-        // console.log(firstTime);
-        freq = $("#frequency").val().trim();
-        // console.log(ftFrequency)
+    $("#train-name").val("");
+  	$("#destination").val("");
+  	$("#first-train").val("");
+  	$("#frequency").val("");
+  });
 
+  database.ref().on("child_added", function(childSnapshot) {
+    var childSnapshot = childSnapshot.val();
 
-        database.ref().push({
-          trainName: trainName,
-          destination: destination,
-          firstTrain: firstTrain,
-          freq: freq,
-        }); 
+    var firstTrainCon = moment(childSnapshot.firstTrain, "hh:mm");
+    var currentTime = moment();
+    var diffTime = moment().diff(moment(firstTrainCon), "minutes");
+    console.log(diffTime);
 
-        // Clear user form
-        $("#train-name").val("");
-    	$("#destination").val("");
-    	$("#first-train").val("");
-    	$("#frequency").val("");
-    });
+    var tMinutesTillTrain;
+    var tRemainder;
+    var nextTrain;
+    var trainArrival;
 
-
-    database.ref().on("child_added", function(childSnapshot) {
-
-      var tMinutesTillTrain;
-      var tRemainder;
-
-      var childSnapshot = childSnapshot.val();
-
-      var firstTrainCon = moment(childSnapshot.firstTrain, "hh:mm");
-      
-      var currentTime = moment();
-
-      //TO DO fix the case when the first train is in the future
-      var diffTime = moment().diff(moment(firstTrainCon), "minutes");
-      console.log(diffTime);
-      if (diffTime < 0) {
-
-      }
-      // Time apart (remainder)
+    if (diffTime < 0) {
+      tMinutesTillTrain = diffTime * -1;
+      trainArrival = moment(firstTrainCon).format("hh:mm A");
+    } else {
       tRemainder = diffTime % childSnapshot.freq;
-      // Minute Until Train
       tMinutesTillTrain = childSnapshot.freq - tRemainder;
-      // Next Train
-      var nextTrain = moment().add(tMinutesTillTrain, "minutes");
-      var trainArrival = moment(nextTrain).format("hh:mm A");
+      nextTrain = moment().add(tMinutesTillTrain, "minutes");
+      trainArrival = moment(nextTrain).format("hh:mm A");
+    }
+    $("#body").append("<tr><td>" + childSnapshot.trainName + "</td><td>" + childSnapshot.destination + "</td><td>" + childSnapshot.firstTrain +
+      "</td><td>" + childSnapshot.freq + "</td><td>" + trainArrival + "</td><td>" + /*nextTrain*/ tMinutesTillTrain + "</td></tr>");
+	})
 
-      $("#body").append("<tr><td>" + childSnapshot.trainName + "</td><td>" + childSnapshot.destination + "</td><td>" + childSnapshot.firstTrain +
-        "</td><td>" + childSnapshot.freq + "</td><td>" + trainArrival + "</td><td>" + tMinutesTillTrain + "</td></tr>");
-
-  	})
+  
